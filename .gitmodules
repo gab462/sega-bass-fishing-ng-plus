@@ -1,0 +1,7 @@
+[submodule "concord"]
+	path = concord
+	url = https://github.com/Cogmasters/concord.git
+	branch = dev
+[submodule "cut"]
+	path = cut
+	url = https://github.com/gab462/cut
