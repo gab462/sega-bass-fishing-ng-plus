@@ -6,5 +6,5 @@ build/main: main.c build/lib/libdiscord.a
 	$(CC) $(CFLAGS) main.c -o build/main $(LDFLAGS)
 
 build/lib/libdiscord.a:
-	make -C concord -j16
+	CFLAGS="-DCCORD_SIGINTCATCH" make -C concord -j16
 	make -C concord PREFIX=$(PWD)/build SHAREDIR=$(PWD)/build install
