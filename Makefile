@@ -1,6 +1,6 @@
 CC := cc
-CFLAGS := -std=c23 -pedantic -Wall -Wextra -Wshadow -I ./build/include -I ./cut
-LDFLAGS := -L ./concord/lib/ -ldiscord -lcurl
+CFLAGS := -std=c23 -pedantic -Wall -Wextra -I ./build/include -I ./cut -I ./msf_gif/ -I ./olive.c/ -I ./cglm/include/cglm/ -Wno-missing-braces -Wno-old-style-declaration
+LDFLAGS := -L ./concord/lib/ -ldiscord -lcurl -lm
 
 build/main: main.c build/lib/libdiscord.a
 	$(CC) $(CFLAGS) main.c -o build/main $(LDFLAGS)

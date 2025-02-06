@@ -5,3 +5,12 @@
 [submodule "cut"]
 	path = cut
 	url = https://github.com/gab462/cut
+[submodule "cglm"]
+	path = cglm
+	url = https://github.com/recp/cglm
+[submodule "olive.c"]
+	path = olive.c
+	url = https://github.com/tsoding/olive.c
+[submodule "msf_gif"]
+	path = msf_gif
+	url = https://github.com/notnullnotvoid/msf_gif
