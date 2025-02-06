@@ -9,31 +9,6 @@
 #define MSF_GIF_IMPL
 #include <msf_gif.h>
 
-typedef void (*cmd_callback)(struct discord *, const struct discord_interaction *);
-
-struct {
-	struct {
-		struct discord_application_command *ptr;
-		int len, cap;
-	} cmds;
-	struct {
-		cmd_callback *ptr;
-		int len, cap;
-	} callbacks;
-} app = {};
-
-void
-app_add_cmd(char *name, char *description, cmd_callback callback, struct discord_application_command_options *options)
-{
-	da_push(&app.cmds, ((struct discord_application_command){
-		.name = name,
-		.description = description,
-		.options = options
-	}));
-
-	da_push(&app.callbacks, callback);
-}
-
 void
 interaction_reply(struct discord_interaction_callback_data response,
 		struct discord *client, const struct discord_interaction *event)
@@ -248,6 +223,31 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	msf_gif_free(result);
 }
 
+typedef void (*cmd_callback)(struct discord *, const struct discord_interaction *);
+
+struct {
+	struct {
+		struct discord_application_command *ptr;
+		int len, cap;
+	} cmds;
+	struct {
+		cmd_callback *ptr;
+		int len, cap;
+	} callbacks;
+} app = {};
+
+void
+app_add_cmd(char *name, char *description, cmd_callback callback, struct discord_application_command_options *options)
+{
+	da_push(&app.cmds, ((struct discord_application_command){
+		.name = name,
+		.description = description,
+		.options = options
+	}));
+
+	da_push(&app.callbacks, callback);
+}
+
 void
 on_ready(struct discord *client, const struct discord_ready *event)
 {
@@ -274,7 +274,14 @@ on_ready(struct discord *client, const struct discord_ready *event)
 		.size = app.cmds.len
 	};
 
-	discord_bulk_overwrite_global_application_commands(client, event->application->id, &commands, NULL);
+	CCORDcode ret = discord_bulk_overwrite_global_application_commands(client, event->application->id, &commands, NULL);
+
+	if(ret != CCORD_OK)
+		fprintf(stderr, "Registering commands: %s\n",
+				discord_strerror(ret, client));
+
+	printf("Logged in as %s!\n", event->user->username);
+	printf("%d commands registered\n", app.cmds.len);
 }
 
 void
@@ -301,6 +308,7 @@ main(void)
 	discord_set_on_ready(client, &on_ready);
 	discord_set_on_interaction_create(client, &on_interaction);
 
+	printf("Starting bot...\n");
 	discord_run(client);
 
 	return(0);
