@@ -1,6 +1,8 @@
 void
 wheel(struct discord *client, const struct discord_interaction *event)
 {
+	struct memory_arena arena = {};
+
 	struct { struct discord_application_command_interaction_data_option *ptr; int len, cap; } options = {
 		.ptr = event->data->options->array,
 		.len = event->data->options->size
@@ -10,7 +12,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	da_for(option, options){
 		if(strcmp(option->name, "choices") == 0){
-			choices.ptr = sv_split(sv(option->value), ",", &choices.len);
+			choices.ptr = ma_sv_split(&arena, sv(option->value), ",", &choices.len);
 			choices.cap = choices.len;
 		}
 	}
@@ -22,7 +24,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 		interaction_reply(response, client, event);
 
-		da_reset(&choices);
+		ma_free(arena);
 		return;
 	}
 
@@ -50,6 +52,8 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	srand(time(NULL));
 
 	struct { uint32_t *ptr; int len, cap; } colors = {};
+
+	ma_da_reserve(&arena, &colors, sectors);
 
 	for(int i = 0; i < sectors; ++i)
 		da_push(&colors, random_color());
@@ -115,18 +119,25 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	MsfGifResult result = msf_gif_end(&state);
 
-	struct string_buffer description = {};
+	struct string_view description = { .ptr = arena.end, .len = 0 };
 
-	for(int i = 0; i < choices.len; ++i){
-		char text[2] = { 'a' + i, '\0' };
+	da_for(choice, choices){
+		char text[2] = { 'a' + ((int) (choice - choices.ptr)), '\0' };
 
-		sb_append(&description, text);
-		sb_append(&description, " - ");
-		sb_append_sv(&description, choices.ptr[i]);
-		sb_append(&description, "\n");
+		memcpy(description.ptr + description.len, text, 1);
+		description.len += 1;
+		memcpy(description.ptr + description.len, " - ", 3);
+		description.len += 3;
+		memcpy(description.ptr + description.len, choice->ptr, choice->len);
+		description.len += choice->len;
+		memcpy(description.ptr + description.len, "\n", 1);
+		description.len += 1;
 	}
 
-	sb_terminate(&description);
+	description.ptr[description.len++] = '\0';
+
+	/* Register bytes as used */
+	ma_allocate_n(&arena, char, description.len);
 
 	struct discord_attachments attachments = {
 		.array = (struct discord_attachment[]){
@@ -159,8 +170,6 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	interaction_reply(response, client, event);
 
-	da_reset(&choices);
-	da_reset(&colors);
-	sb_reset(&description);
+	ma_free(arena);
 	msf_gif_free(result);
 }

@@ -84,26 +84,28 @@ string_replace(char *string, char *from, char *to)
 size_t
 http_request_write_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	struct string_buffer *sb = userp;
+	struct string_view *res = userp;
+
 	struct string_view data = {
 		.ptr = contents,
 		.len = size * nmemb
 	};
 
-	sb_append_sv(sb, data);
+	memcpy(res->ptr + res->len, data.ptr, data.len);
+	res->len += data.len;
 
-	return(size * nmemb);
+	return(data.len);
 }
 
-struct string_buffer
-http_request(char *url)
+struct string_view
+http_request(struct memory_arena *arena, char *url)
 {
-	struct string_buffer sb = {};
 	CURL *curl = curl_easy_init();
+	struct string_view res = { .ptr = ma_allocate_n(arena, char, 0), .len = 0 };
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_request_write_cb);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &res);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
 	CURLcode ret = curl_easy_perform(curl);
@@ -111,9 +113,11 @@ http_request(char *url)
 	curl_easy_cleanup(curl);
 
 	if(ret != CURLE_OK){
-		sb_reset(&sb);
-		return((struct string_buffer){});
+		return((struct string_view){});
 	}
 
-	return(sb);
+	/* Register bytes as used */
+	ma_allocate_n(arena, char, res.len);
+
+	return(res);
 }
