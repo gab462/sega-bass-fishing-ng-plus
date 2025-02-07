@@ -14,6 +14,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 		if(strcmp(option->name, "choices") == 0){
 			choices.ptr = ma_sv_split(&arena, sv(option->value), ",", &choices.len);
 			choices.cap = choices.len;
+			break;
 		}
 	}
 
@@ -122,16 +123,15 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	struct string_view description = { .ptr = arena.end, .len = 0 };
 
 	da_for(choice, choices){
-		char text[2] = { 'a' + ((int) (choice - choices.ptr)), '\0' };
+		description.ptr[description.len++] = 'a' + ((int) (choice - choices.ptr));
 
-		memcpy(description.ptr + description.len, text, 1);
-		description.len += 1;
 		memcpy(description.ptr + description.len, " - ", 3);
 		description.len += 3;
+
 		memcpy(description.ptr + description.len, choice->ptr, choice->len);
 		description.len += choice->len;
-		memcpy(description.ptr + description.len, "\n", 1);
-		description.len += 1;
+
+		description.ptr[description.len++] = '\n';
 	}
 
 	description.ptr[description.len++] = '\0';
