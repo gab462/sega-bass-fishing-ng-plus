@@ -1,40 +1,14 @@
-size_t
-write_cb(void *contents, size_t size, size_t nmemb, void *userp)
-{
-	struct string_buffer *sb = userp;
-	struct string_view data = {
-		.ptr = contents,
-		.len = size * nmemb
-	};
-
-	sb_append_sv(sb, data);
-
-	return size * nmemb;
-}
-
 void
 character(struct discord *client, const struct discord_interaction *event)
 {
-	CURL *curl = curl_easy_init();
-	struct string_buffer sb = {};
-	char *url = "https://api.jikan.moe/v4/random/characters";
+	struct string_buffer sb = http_request("https://api.jikan.moe/v4/random/characters");
 
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sb);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-	CURLcode ret = curl_easy_perform(curl);
-
-	if(ret != CURLE_OK){
+	if(sb.ptr == NULL){
 		struct discord_interaction_callback_data response = {
 			.content = "Request failed"
 		};
 
 		interaction_reply(response, client, event);
-
-		sb_reset(&sb);
-		curl_easy_cleanup(curl);
 		return;
 	}
 
@@ -57,7 +31,6 @@ character(struct discord *client, const struct discord_interaction *event)
 		interaction_reply(response, client, event);
 
 		sb_reset(&sb);
-		curl_easy_cleanup(curl);
 		return;
 	}
 
@@ -94,9 +67,9 @@ character(struct discord *client, const struct discord_interaction *event)
 		}
 	};
 
-	url_remove_backslashes(embed.url);
-	url_remove_backslashes(embed.image->url);
-	parse_newlines(embed.description);
+	string_remove(embed.url, '\\');
+	string_remove(embed.image->url, '\\');
+	string_replace(embed.description, "\\n", "\n");
 
 	interaction_reply(response, client, event);
 
@@ -114,6 +87,5 @@ character(struct discord *client, const struct discord_interaction *event)
 	else
 		embed.fields->array[0].value = "0";
 
-	curl_easy_cleanup(curl);
 	sb_reset(&sb);
 }

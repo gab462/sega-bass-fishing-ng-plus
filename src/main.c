@@ -105,7 +105,7 @@ main(void)
 	if(ret != CURLE_OK){
 		fprintf(stderr, "Initializing curl: %s\n",
 				curl_easy_strerror(ret));
-		return 1;
+		return(1);
 	}
 
 	printf("Starting bot...\n");

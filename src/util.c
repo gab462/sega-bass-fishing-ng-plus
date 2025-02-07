@@ -41,12 +41,12 @@ get_json_token(char *buffer, jsmntok_t token)
 }
 
 void
-url_remove_backslashes(char *string)
+string_remove(char *string, char c)
 {
 	int len = strlen(string);
 
 	for(int i = 0; i < len; ++i){
-		if(string[i] == '\\'){
+		if(string[i] == c){
 			memmove(string + i, string + i + 1, len - i);
 			--i;
 			--len;
@@ -55,15 +55,65 @@ url_remove_backslashes(char *string)
 }
 
 void
-parse_newlines(char *string)
+string_replace(char *string, char *from, char *to)
 {
 	int len = strlen(string);
 
+	struct string_view from_sv = sv(from);
+	struct string_view to_sv = sv(to);
+
+	/* TODO: implement resizing */
+	if(from_sv.len < to_sv.len)
+		return;
+
 	for(int i = 0; i < len; ++i){
-		if(string[i] == '\\' && string[i + 1] == 'n'){
-			string[i] = '\n';
-			memmove(string + i + 1, string + i + 2, len - i - 1);
-			--len;
+		if(sv_equal(sv_left(sv(string + i), from_sv.len), from_sv)){
+			for(int j = 0; j < to_sv.len; ++j){
+				string[i + j] = to_sv.ptr[j];
+			}
+
+			memmove(string + i + to_sv.len,
+					string + i + from_sv.len,
+					len - i - from_sv.len + 1); /* \0 */
+
+			len += to_sv.len - from_sv.len;
 		}
 	}
+}
+
+size_t
+write_cb(void *contents, size_t size, size_t nmemb, void *userp)
+{
+	struct string_buffer *sb = userp;
+	struct string_view data = {
+		.ptr = contents,
+		.len = size * nmemb
+	};
+
+	sb_append_sv(sb, data);
+
+	return(size * nmemb);
+}
+
+struct string_buffer
+http_request(char *url)
+{
+	struct string_buffer sb = {};
+	CURL *curl = curl_easy_init();
+
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sb);
+	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+
+	CURLcode ret = curl_easy_perform(curl);
+
+	curl_easy_cleanup(curl);
+
+	if(ret != CURLE_OK){
+		sb_reset(&sb);
+		return((struct string_buffer){});
+	}
+
+	return(sb);
 }
