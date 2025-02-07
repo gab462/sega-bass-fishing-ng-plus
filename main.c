@@ -1,15 +1,15 @@
-#include <concord/discord.h>
-#include <cut.c>
-#include <time.h>
 #include <stdlib.h>
+#include <time.h>
 #include <math.h>
-#include <cglm.h>
-#include <curl/curl.h>
+#include <concord/discord.h>
 #include <concord/jsmn.h>
+#include <cglm/struct.h>
+#include <curl/curl.h>
+#include <cut/cut.c>
 #define OLIVEC_IMPLEMENTATION
-#include <olive.c>
+#include <olive.c/olive.c>
 #define MSF_GIF_IMPL
-#include <msf_gif.h>
+#include <msf_gif/msf_gif.h>
 
 void
 interaction_reply(struct discord_interaction_callback_data response,
@@ -93,7 +93,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	uint32_t pixels[height][width] = {};
 
 	int text_size = width / 100;
-	vec4 font_size = {
+	vec2s font_size = {
 		olivec_default_font.width * text_size,
 		olivec_default_font.height * text_size,
 	};
@@ -115,7 +115,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	float speed = .5f + random_float() * .5f;
 	float accel = -.005f - random_float() * .01f;
 
-	vec4 center = { width/2.f, height/2.f };
+	vec2s center = { width/2.f, height/2.f };
 
 	for(int i = 0; i < 200; ++i){
 		olivec_fill(canvas, 0xFFFFFFFF);
@@ -127,45 +127,41 @@ wheel(struct discord *client, const struct discord_interaction *event)
 			speed = 0.f;
 
 		for(int i = 0; i < sectors; ++i){
-			vec4 b = { width, height/2.f };
-			vec4 c = { width, height/2.f };
+			vec2s b = { width, height/2.f };
+			vec2s c = { width, height/2.f };
 
-			glm_vec2_sub(b, center, b);
-			glm_vec2_rotate(b, angle + sector_angle * i, b);
-			glm_vec2_add(b, center, b);
+			b = glms_vec2_sub(b, center);
+			b = glms_vec2_rotate(b, angle + sector_angle * i);
+			b = glms_vec2_add(b, center);
 
-			glm_vec2_sub(c, center, c);
-			glm_vec2_rotate(c, angle + sector_angle * (i + 1), c);
-			glm_vec2_add(c, center, c);
+			c = glms_vec2_sub(c, center);
+			c = glms_vec2_rotate(c, angle + sector_angle * (i + 1));
+			c = glms_vec2_add(c, center);
 
-			vec4 text_pos = {};
-			glm_vec2_add(text_pos, b, text_pos);
+			vec2s text_pos = b;
 
-			vec4 middle = {};
-			glm_vec2_add(middle, c, middle);
-			glm_vec2_sub(middle, b, middle);
-			glm_vec2_divs(middle, 2.f, middle);
+			vec2s middle = c;
+			middle = glms_vec2_sub(middle, b);
+			middle = glms_vec2_divs(middle, 2.f);
 
-			glm_vec2_add(text_pos, middle, text_pos);
+			text_pos = glms_vec2_add(text_pos, middle);
 
-			vec4 font_middle = {};
-			glm_vec2_add(font_middle, font_size, font_middle);
-			glm_vec2_divs(font_middle, 2.f, font_middle);
+			vec2s font_middle = font_size;
+			font_middle = glms_vec2_divs(font_middle, 2.f);
 
-			glm_vec2_sub(text_pos, font_middle, text_pos);
+			text_pos = glms_vec2_sub(text_pos, font_middle);
 
 			/* Closer to center */
-			vec4 closer = {};
-			glm_vec2_add(closer, text_pos, closer);
-			glm_vec2_sub(closer, center, closer);
-			glm_vec2_divs(closer, 8.f, closer);
+			vec2s closer = text_pos;
+			closer = glms_vec2_sub(closer, center);
+			closer = glms_vec2_divs(closer, 8.f);
 
-			glm_vec2_sub(text_pos, closer, text_pos);
+			text_pos = glms_vec2_sub(text_pos, closer);
 
 			char text[2] = { 'a' + i, '\0' };
 
-			olivec_triangle(canvas, center[0], center[1], b[0], b[1], c[0], c[1], colors.ptr[i]);
-			olivec_text(canvas, text, text_pos[0], text_pos[1], olivec_default_font, text_size, 0xFF000000);
+			olivec_triangle(canvas, center.x, center.y, b.x, b.y, c.x, c.y, colors.ptr[i]);
+			olivec_text(canvas, text, text_pos.x, text_pos.y, olivec_default_font, text_size, 0xFF000000);
 		}
 
 		olivec_triangle(canvas, width/2.f - width/20.f, 0.f, width/2.f + width/20.f, 0.f, width/2.f, height/20.f, 0xFF000000);
