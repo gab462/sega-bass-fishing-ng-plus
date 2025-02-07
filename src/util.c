@@ -32,7 +32,7 @@ random_float(void)
 }
 
 struct string_view
-get_json_token(char *buffer, jsmntok_t token)
+json_get(char *buffer, jsmntok_t token)
 {
 	return((struct string_view){
 		.ptr = buffer + token.start,
@@ -82,7 +82,7 @@ string_replace(char *string, char *from, char *to)
 }
 
 size_t
-write_cb(void *contents, size_t size, size_t nmemb, void *userp)
+http_request_write_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
 	struct string_buffer *sb = userp;
 	struct string_view data = {
@@ -102,7 +102,7 @@ http_request(char *url)
 	CURL *curl = curl_easy_init();
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_request_write_cb);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sb);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 

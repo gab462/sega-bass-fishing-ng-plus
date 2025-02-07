@@ -1,5 +1,5 @@
 void
-character(struct discord *client, const struct discord_interaction *event)
+mal_character(struct discord *client, const struct discord_interaction *event)
 {
 	struct string_buffer sb = http_request("https://api.jikan.moe/v4/random/characters");
 
@@ -45,18 +45,18 @@ character(struct discord *client, const struct discord_interaction *event)
 	};
 
 	for(int i = 0; i < json_count; ++i){
-		struct string_view field = get_json_token(sb.ptr, tokens[i]);
+		struct string_view field = json_get(sb.ptr, tokens[i]);
 
 		if(sv_equal(field, sv("url"))){
-			embed.url = sv_save(get_json_token(sb.ptr, tokens[i + 1]));
+			embed.url = sv_save(json_get(sb.ptr, tokens[i + 1]));
 		}else if(sv_equal(field, sv("jpg"))){
-			embed.image->url = sv_save(get_json_token(sb.ptr, tokens[i + 3]));
+			embed.image->url = sv_save(json_get(sb.ptr, tokens[i + 3]));
 		}else if(sv_equal(field, sv("name")))
-			embed.title = sv_save(get_json_token(sb.ptr, tokens[i + 1]));
+			embed.title = sv_save(json_get(sb.ptr, tokens[i + 1]));
 		else if(sv_equal(field, sv("about")))
-			embed.description = sv_save(get_json_token(sb.ptr, tokens[i + 1]));
+			embed.description = sv_save(json_get(sb.ptr, tokens[i + 1]));
 		else if(sv_equal(field, sv("favorites")))
-			embed.fields->array[0].value = sv_save(get_json_token(sb.ptr, tokens[i + 1]));
+			embed.fields->array[0].value = sv_save(json_get(sb.ptr, tokens[i + 1]));
 	}
 
 	struct discord_interaction_callback_data response = {

@@ -16,65 +16,60 @@
 #include "wheel.c"
 #include "mal.c"
 
+#define arrlen(arr) (sizeof(arr) / sizeof(arr[0]))
+
 typedef void (*cmd_callback)(struct discord *, const struct discord_interaction *);
 
-struct {
-	struct {
-		struct discord_application_command *ptr;
-		int len, cap;
-	} cmds;
-	struct {
-		cmd_callback *ptr;
-		int len, cap;
-	} callbacks;
-} app = {};
+struct discord_application_command commands[] = {
+	{
+		.name = "ping",
+		.description = "Responds with \"pong\"",
+	},
+	{
+		.name = "wheel",
+		.description = "Spin the wheel",
+		.options = &(struct discord_application_command_options){
+			.array = (struct discord_application_command_option[]){
+				{
+					.type = DISCORD_APPLICATION_OPTION_STRING,
+					.name = "choices",
+					.description = "Comma-separated list of choices",
+					.required = true,
+				}
+			},
+			.size = 1
+		}
+	},
+	{
+		.name = "character",
+		.description = "Get random character from MAL"
+	}
+};
 
-void
-app_add_cmd(char *name, char *description, cmd_callback callback, struct discord_application_command_options *options)
-{
-	da_push(&app.cmds, ((struct discord_application_command){
-		.name = name,
-		.description = description,
-		.options = options
-	}));
-
-	da_push(&app.callbacks, callback);
-}
+void (*callbacks[])(struct discord *, const struct discord_interaction *) = {
+	pong,
+	wheel,
+	mal_character
+};
 
 void
 on_ready(struct discord *client, const struct discord_ready *event)
 {
-	app_add_cmd("ping", "Responds with \"pong\"", pong, NULL);
-
-	struct discord_application_command_options wheel_options = {
-		.array = (struct discord_application_command_option[]){
-			{
-				.type = DISCORD_APPLICATION_OPTION_STRING,
-				.name = "choices",
-				.description = "Comma-separated list of choices",
-				.required = true,
-			}
-		},
-		.size = 1
-	};
-
-	app_add_cmd("wheel", "Spin the weel", wheel, &wheel_options);
-
-	app_add_cmd("character", "Random character", character, NULL);
-
-	struct discord_application_commands commands = {
-		.array = app.cmds.ptr,
-		.size = app.cmds.len
-	};
-
-	CCORDcode ret = discord_bulk_overwrite_global_application_commands(client, event->application->id, &commands, NULL);
+	CCORDcode ret =
+		discord_bulk_overwrite_global_application_commands(client,
+				event->application->id,
+				&(struct discord_application_commands){
+					.array = commands,
+					.size = arrlen(commands)
+				},
+				NULL);
 
 	if(ret != CCORD_OK && ret != CCORD_PENDING)
 		fprintf(stderr, "Registering commands: %s\n",
 				discord_strerror(ret, client));
 
 	printf("Logged in as %s!\n", event->user->username);
-	printf("%d commands registered\n", app.cmds.len);
+	printf("%ld commands registered\n", arrlen(commands));
 }
 
 void
@@ -83,9 +78,9 @@ on_interaction(struct discord *client, const struct discord_interaction *event)
 	if(event->type != DISCORD_INTERACTION_APPLICATION_COMMAND)
 		return;
 
-	for(int i = 0; i < app.cmds.len; ++i){
-		if(strcmp(event->data->name, app.cmds.ptr[i].name) == 0){
-			app.callbacks.ptr[i](client, event);
+	for(int i = 0; i < (int) arrlen(commands); ++i){
+		if(strcmp(event->data->name, commands[i].name) == 0){
+			callbacks[i](client, event);
 		}
 	}
 }
