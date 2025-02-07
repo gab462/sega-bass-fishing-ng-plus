@@ -11,7 +11,7 @@ interaction_reply(struct discord_interaction_callback_data response,
 			},
 			NULL);
 
-	if(ret != CCORD_OK)
+	if(ret != CCORD_OK && ret != CCORD_PENDING)
 		fprintf(stderr, "Responding to %s: %s\n",
 				event->data->name, discord_strerror(ret, client));
 }

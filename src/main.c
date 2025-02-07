@@ -69,7 +69,7 @@ on_ready(struct discord *client, const struct discord_ready *event)
 
 	CCORDcode ret = discord_bulk_overwrite_global_application_commands(client, event->application->id, &commands, NULL);
 
-	if(ret != CCORD_OK)
+	if(ret != CCORD_OK && ret != CCORD_PENDING)
 		fprintf(stderr, "Registering commands: %s\n",
 				discord_strerror(ret, client));
 
