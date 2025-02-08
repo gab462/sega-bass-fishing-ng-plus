@@ -18,6 +18,19 @@
 
 #define arrlen(arr) (sizeof(arr) / sizeof(arr[0]))
 
+#define logf(fmt, ...)							\
+	do{								\
+		struct tm *datetime =					\
+			localtime(&(time_t){ time(NULL) });		\
+		printf("[%d-%02d-%02d %02d:%02d:%02d] " fmt "\n",	\
+		       datetime->tm_year + 1900, datetime->tm_mon + 1,	\
+		       datetime->tm_mday, datetime->tm_hour,		\
+		       datetime->tm_min, datetime->tm_sec,		\
+		       __VA_ARGS__);					\
+	}while(0)
+
+#define log(str) logf(str "%s", "")
+
 typedef void (*cmd_callback)(struct discord *, const struct discord_interaction *);
 
 struct discord_application_command commands[] = {
@@ -68,8 +81,8 @@ on_ready(struct discord *client, const struct discord_ready *event)
 		fprintf(stderr, "Registering commands: %s\n",
 				discord_strerror(ret, client));
 
-	printf("Logged in as %s!\n", event->user->username);
-	printf("%ld commands registered\n", arrlen(commands));
+	logf("Logged in as %s!", event->user->username);
+	logf("%ld commands registered", arrlen(commands));
 }
 
 void
@@ -103,7 +116,7 @@ main(void)
 		return(1);
 	}
 
-	printf("Starting bot...\n");
+	log("Starting bot");
 	discord_run(client);
 
 	return(0);
