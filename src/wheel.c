@@ -42,7 +42,10 @@ wheel(struct memory_arena *arena,
 		olivec_default_font.height * text_size,
 	};
 
-	MsfGifState state;
+	MsfGifState state = {
+		.customAllocatorContext = arena
+	};
+
 	msf_gif_begin(&state, width, height);
 
 	Olivec_Canvas canvas = { (uint32_t *) pixels, width, height, width };
@@ -166,6 +169,4 @@ wheel(struct memory_arena *arena,
 	};
 
 	interaction_reply(response, client, event);
-
-	msf_gif_free(result);
 }

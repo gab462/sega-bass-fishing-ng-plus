@@ -1,24 +1,15 @@
-#include <stdlib.h>
-#include <time.h>
-#include <math.h>
-#include <concord/discord.h>
-#include <concord/jsmn.h>
-#include <cglm/struct.h>
-#include <curl/curl.h>
-#include <cut/cut.c>
 #define OLIVEC_IMPLEMENTATION
-#include <olive.c/olive.c>
 #define MSF_GIF_IMPL
-#include <msf_gif/msf_gif.h>
 
-#include "util.c"
-#include "pong.c"
-#include "wheel.c"
-#include "mal.c"
+#define MSF_GIF_MALLOC(arena, len) ma_allocate_impl(arena, len, alignof(max_align_t))
+/* Assuming realloc only right after malloc */
+#define MSF_GIF_REALLOC(arena, mem, old_len, new_len) \
+	(((struct memory_arena *) arena)->end += (new_len) - (old_len), mem)
+#define MSF_GIF_FREE(...) do{}while(0)
 
 #define arrlen(arr) (sizeof(arr) / sizeof(arr[0]))
 
-#define logf(fmt, ...)							\
+#define print_logf(fmt, ...)						\
 	do{								\
 		struct tm *datetime =					\
 			localtime(&(time_t){ time(NULL) });		\
@@ -29,7 +20,23 @@
 		       __VA_ARGS__);					\
 	}while(0)
 
-#define log(str) logf(str "%s", "")
+#define print_log(str) print_logf(str "%s", "")
+
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+#include <concord/discord.h>
+#include <concord/jsmn.h>
+#include <cglm/struct.h>
+#include <curl/curl.h>
+#include <cut/cut.c>
+#include <olive.c/olive.c>
+#include <msf_gif/msf_gif.h>
+
+#include "util.c"
+#include "pong.c"
+#include "wheel.c"
+#include "mal.c"
 
 struct discord_application_command commands[] = {
 	{
@@ -79,8 +86,8 @@ on_ready(struct discord *client, const struct discord_ready *event)
 		fprintf(stderr, "Registering commands: %s\n",
 				discord_strerror(ret, client));
 
-	logf("Logged in as %s!", event->user->username);
-	logf("%ld commands registered", arrlen(commands));
+	print_logf("Logged in as %s!", event->user->username);
+	print_logf("%ld commands registered", arrlen(commands));
 }
 
 void
@@ -117,7 +124,7 @@ main(void)
 		return(1);
 	}
 
-	log("Starting bot");
+	print_log("Starting bot");
 	discord_run(client);
 
 	return(0);
