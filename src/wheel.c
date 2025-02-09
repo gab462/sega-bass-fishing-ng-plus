@@ -1,8 +1,7 @@
 void
-wheel(struct discord *client, const struct discord_interaction *event)
+wheel(struct memory_arena *arena,
+      struct discord *client, const struct discord_interaction *event)
 {
-	struct memory_arena arena = {};
-
 	struct { struct discord_application_command_interaction_data_option *ptr; int len, cap; } options = {
 		.ptr = event->data->options->array,
 		.len = event->data->options->size
@@ -12,7 +11,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	da_for(option, options){
 		if(strcmp(option->name, "choices") == 0){
-			choices.ptr = ma_sv_split(&arena, sv(option->value), ",", &choices.len);
+			choices.ptr = ma_sv_split(arena, sv(option->value), ",", &choices.len);
 			choices.cap = choices.len;
 			break;
 		}
@@ -24,8 +23,6 @@ wheel(struct discord *client, const struct discord_interaction *event)
 		};
 
 		interaction_reply(response, client, event);
-
-		ma_free(arena);
 		return;
 	}
 
@@ -54,7 +51,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	struct { uint32_t *ptr; int len, cap; } colors = {};
 
-	ma_da_reserve(&arena, &colors, sectors);
+	ma_da_reserve(arena, &colors, sectors);
 
 	for(int i = 0; i < sectors; ++i)
 		da_push(&colors, random_color());
@@ -120,7 +117,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	MsfGifResult result = msf_gif_end(&state);
 
-	struct string_view description = { .ptr = arena.end, .len = 0 };
+	struct string_view description = { .ptr = arena->end, .len = 0 };
 
 	da_for(choice, choices){
 		description.ptr[description.len++] = 'a' + ((int) (choice - choices.ptr));
@@ -137,7 +134,7 @@ wheel(struct discord *client, const struct discord_interaction *event)
 	description.ptr[description.len++] = '\0';
 
 	/* Register bytes as used */
-	ma_allocate_n(&arena, char, description.len);
+	ma_allocate_n(arena, char, description.len);
 
 	struct discord_attachments attachments = {
 		.array = (struct discord_attachment[]){
@@ -170,6 +167,5 @@ wheel(struct discord *client, const struct discord_interaction *event)
 
 	interaction_reply(response, client, event);
 
-	ma_free(arena);
 	msf_gif_free(result);
 }

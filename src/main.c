@@ -31,8 +31,6 @@
 
 #define log(str) logf(str "%s", "")
 
-typedef void (*cmd_callback)(struct discord *, const struct discord_interaction *);
-
 struct discord_application_command commands[] = {
 	{
 		.name = "ping",
@@ -59,7 +57,7 @@ struct discord_application_command commands[] = {
 	}
 };
 
-void (*callbacks[])(struct discord *, const struct discord_interaction *) = {
+void (*callbacks[])(struct memory_arena *, struct discord *, const struct discord_interaction *) = {
 	pong,
 	wheel,
 	mal_character
@@ -93,7 +91,10 @@ on_interaction(struct discord *client, const struct discord_interaction *event)
 
 	for(int i = 0; i < (int) arrlen(commands); ++i){
 		if(strcmp(event->data->name, commands[i].name) == 0){
-			callbacks[i](client, event);
+			struct memory_arena arena = {};
+			callbacks[i](&arena, client, event);
+			ma_free(arena);
+			break;
 		}
 	}
 }
