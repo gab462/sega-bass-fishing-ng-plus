@@ -13,11 +13,12 @@
 	do{								\
 		struct tm *datetime =					\
 			localtime(&(time_t){ time(NULL) });		\
-		printf("[%d-%02d-%02d %02d:%02d:%02d] " fmt "\n",	\
-		       datetime->tm_year + 1900, datetime->tm_mon + 1,	\
-		       datetime->tm_mday, datetime->tm_hour,		\
-		       datetime->tm_min, datetime->tm_sec,		\
-		       __VA_ARGS__);					\
+		fprintf(stderr, "[%d-%02d-%02d %02d:%02d:%02d] "	\
+			fmt "\n",					\
+			datetime->tm_year + 1900, datetime->tm_mon + 1,	\
+			datetime->tm_mday, datetime->tm_hour,		\
+			datetime->tm_min, datetime->tm_sec,		\
+			__VA_ARGS__);					\
 	}while(0)
 
 #define print_log(str) print_logf(str "%s", "")
