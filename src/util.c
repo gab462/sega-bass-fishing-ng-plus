@@ -84,15 +84,14 @@ string_replace(char *string, char *from, char *to)
 size_t
 http_request_write_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	struct string_view *res = userp;
+	struct string_buffer *res = userp;
 
 	struct string_view data = {
 		.ptr = contents,
 		.len = size * nmemb
 	};
 
-	memcpy(res->ptr + res->len, data.ptr, data.len);
-	res->len += data.len;
+	sb_append_sv(res, data);
 
 	return(data.len);
 }
@@ -101,7 +100,7 @@ struct string_view
 http_request(struct memory_arena *arena, char *url)
 {
 	CURL *curl = curl_easy_init();
-	struct string_view res = { .ptr = ma_allocate_n(arena, char, 0), .len = 0 };
+	struct string_buffer res = { .ptr = ma_allocate_n(arena, char, 0), .cap = INT_MAX };
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_request_write_cb);
@@ -116,8 +115,9 @@ http_request(struct memory_arena *arena, char *url)
 		return((struct string_view){});
 	}
 
+	res.cap = res.len;
 	/* Register bytes as used */
 	ma_allocate_n(arena, char, res.len);
 
-	return(res);
+	return(sv_from_sb(res));
 }

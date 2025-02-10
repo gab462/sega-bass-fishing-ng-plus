@@ -120,21 +120,18 @@ wheel(struct memory_arena *arena,
 
 	MsfGifResult result = msf_gif_end(&state);
 
-	struct string_view description = { .ptr = arena->end, .len = 0 };
+	struct string_buffer description = { .ptr = arena->end, .cap = INT_MAX };
 
 	da_for(choice, choices){
-		description.ptr[description.len++] = 'a' + ((int) (choice - choices.ptr));
-
-		memcpy(description.ptr + description.len, " - ", 3);
-		description.len += 3;
-
-		memcpy(description.ptr + description.len, choice->ptr, choice->len);
-		description.len += choice->len;
-
-		description.ptr[description.len++] = '\n';
+		da_push(&description, 'a' + ((int) (choice - choices.ptr)));
+		sb_append(&description, " - ");
+		sb_append_sv(&description, *choice);
+		sb_append(&description, "\n");
 	}
 
-	description.ptr[description.len++] = '\0';
+	sb_terminate(&description);
+
+	description.cap = description.len;
 
 	/* Register bytes as used */
 	ma_allocate_n(arena, char, description.len);
