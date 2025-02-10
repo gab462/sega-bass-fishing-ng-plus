@@ -84,8 +84,8 @@ on_ready(struct discord *client, const struct discord_ready *event)
 				NULL);
 
 	if(ret != CCORD_OK && ret != CCORD_PENDING)
-		fprintf(stderr, "Registering commands: %s\n",
-				discord_strerror(ret, client));
+		print_logf("Registering commands: %s\n",
+			   discord_strerror(ret, client));
 
 	print_logf("Logged in as %s!", event->user->username);
 	print_logf("%ld commands registered", arrlen(commands));
@@ -120,13 +120,20 @@ main(void)
 
 	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
 	if(ret != CURLE_OK){
-		fprintf(stderr, "Initializing curl: %s\n",
-				curl_easy_strerror(ret));
+		print_logf("Initializing curl: %s\n",
+			   curl_easy_strerror(ret));
 		return(1);
 	}
 
 	print_log("Starting bot");
-	discord_run(client);
+
+	CCORDcode ret2 = discord_run(client);
+
+	if(ret2 != CCORD_OK)
+		print_logf("Running client: %s\n",
+			   discord_strerror(ret2, client));
+
+	print_log("Exiting...");
 
 	return(0);
 }
