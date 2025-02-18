@@ -35,7 +35,7 @@ struct string_view
 json_get(char *buffer, jsmntok_t token)
 {
 	return((struct string_view){
-		.ptr = buffer + token.start,
+		.start = buffer + token.start,
 		.len = token.end - token.start
 	});
 }
@@ -69,7 +69,7 @@ string_replace(char *string, char *from, char *to)
 	for(int i = 0; i < len; ++i){
 		if(sv_equal(sv_left(sv(string + i), from_sv.len), from_sv)){
 			for(int j = 0; j < to_sv.len; ++j){
-				string[i + j] = to_sv.ptr[j];
+				string[i + j] = to_sv.start[j];
 			}
 
 			memmove(string + i + to_sv.len,
@@ -84,10 +84,10 @@ string_replace(char *string, char *from, char *to)
 size_t
 http_request_write_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	struct string_buffer *res = userp;
+	char **res = userp;
 
 	struct string_view data = {
-		.ptr = contents,
+		.start = contents,
 		.len = size * nmemb
 	};
 
@@ -100,7 +100,9 @@ struct string_view
 http_request(struct memory_arena *arena, char *url)
 {
 	CURL *curl = curl_easy_init();
-	struct string_buffer res = { .ptr = ma_allocate_n(arena, char, 0), .cap = INT_MAX };
+	char *res = nullptr;
+	ma_sb_reserve(arena, &res, 0);
+	da_header(res)->cap = INT_MAX;
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_request_write_cb);
@@ -115,9 +117,9 @@ http_request(struct memory_arena *arena, char *url)
 		return((struct string_view){});
 	}
 
-	res.cap = res.len;
+	da_header(res)->cap = da_len(res);
 	/* Register bytes as used */
-	ma_allocate_n(arena, char, res.len);
+	ma_allocate_n(arena, char, da_len(res));
 
 	return(sv_from_sb(res));
 }

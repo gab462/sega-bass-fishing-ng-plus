@@ -2,22 +2,19 @@ void
 wheel(struct memory_arena *arena,
       struct discord *client, const struct discord_interaction *event)
 {
-	struct { struct discord_application_command_interaction_data_option *ptr; int len, cap; } options = {
-		.ptr = event->data->options->array,
-		.len = event->data->options->size
-	};
+	if(event->data->options->size != 1 || strcmp(event->data->options->array[0].name, "choices") != 0){
+		struct discord_interaction_callback_data response = {
+			.content = "Error when parsing options"
+		};
 
-	struct { struct string_view *ptr; int len, cap; } choices = {};
+		interaction_reply(response, client, event);
+		return;
 
-	da_for(option, options){
-		if(strcmp(option->name, "choices") == 0){
-			choices.ptr = ma_sv_split(arena, sv(option->value), ",", &choices.len);
-			choices.cap = choices.len;
-			break;
-		}
 	}
 
-	if(choices.len < 3){
+	struct string_view *choices = ma_sv_split(arena, sv(event->data->options->array[0].value), ",");
+
+	if(da_len(choices) < 3){
 		struct discord_interaction_callback_data response = {
 			.content = "At least 3 choices required"
 		};
@@ -32,7 +29,7 @@ wheel(struct memory_arena *arena,
 	int dur_cs = 4;
 	int bit_depth = 16;
 	int pitch_bytes = width * 4;
-	int sectors = choices.len;
+	int sectors = da_len(choices);
 
 	uint32_t pixels[height][width] = {};
 
@@ -52,7 +49,7 @@ wheel(struct memory_arena *arena,
 
 	srand(time(NULL));
 
-	struct { uint32_t *ptr; int len, cap; } colors = {};
+	uint32_t *colors = nullptr;
 
 	ma_da_reserve(arena, &colors, sectors);
 
@@ -109,7 +106,7 @@ wheel(struct memory_arena *arena,
 
 			char text[2] = { 'a' + i, '\0' };
 
-			olivec_triangle(canvas, center.x, center.y, b.x, b.y, c.x, c.y, colors.ptr[i]);
+			olivec_triangle(canvas, center.x, center.y, b.x, b.y, c.x, c.y, colors[i]);
 			olivec_text(canvas, text, text_pos.x, text_pos.y, olivec_default_font, text_size, 0xFF000000);
 		}
 
@@ -120,10 +117,12 @@ wheel(struct memory_arena *arena,
 
 	MsfGifResult result = msf_gif_end(&state);
 
-	struct string_buffer description = { .ptr = arena->end, .cap = INT_MAX };
+	char *description = nullptr;
+	ma_sb_reserve(arena, &description, 0);
+	da_header(description)->cap = INT_MAX;
 
 	da_for(choice, choices){
-		da_push(&description, 'a' + ((int) (choice - choices.ptr)));
+		da_push(&description, 'a' + ((int) (choice - choices)));
 		sb_append(&description, " - ");
 		sb_append_sv(&description, *choice);
 		sb_append(&description, "\n");
@@ -131,10 +130,10 @@ wheel(struct memory_arena *arena,
 
 	sb_terminate(&description);
 
-	description.cap = description.len;
+	da_header(description)->cap = da_header(description)->len;
 
 	/* Register bytes as used */
-	ma_allocate_n(arena, char, description.len);
+	ma_allocate_n(arena, char, da_len(description));
 
 	struct discord_attachments attachments = {
 		.array = (struct discord_attachment[]){
@@ -153,7 +152,7 @@ wheel(struct memory_arena *arena,
 				.image = &(struct discord_embed_image){
 					.url = "attachment://wheel.gif"
 				},
-				.description = description.ptr
+				.description = description
 			}
 		},
 		.size = 1
