@@ -2,26 +2,10 @@
 #define MSF_GIF_IMPL
 
 #define MSF_GIF_MALLOC(arena, len) ma_allocate_impl(arena, len, alignof(max_align_t))
-/* Assuming realloc only right after malloc */
-#define MSF_GIF_REALLOC(arena, mem, old_len, new_len) \
-	(((struct memory_arena *) arena)->end += (new_len) - (old_len), mem)
+#define MSF_GIF_REALLOC(arena, mem, old_len, new_len) (((struct memory_arena *) arena)->end += (new_len) - (old_len), mem)
 #define MSF_GIF_FREE(...) do{}while(0)
 
 #define arrlen(arr) (sizeof(arr) / sizeof(arr[0]))
-
-#define print_logf(fmt, ...)						\
-	do{								\
-		struct tm *datetime =					\
-			localtime(&(time_t){ time(NULL) });		\
-		fprintf(stderr, "[%d-%02d-%02d %02d:%02d:%02d] "	\
-			fmt "\n",					\
-			datetime->tm_year + 1900, datetime->tm_mon + 1,	\
-			datetime->tm_mday, datetime->tm_hour,		\
-			datetime->tm_min, datetime->tm_sec,		\
-			__VA_ARGS__);					\
-	}while(0)
-
-#define print_log(str) print_logf(str "%s", "")
 
 #include <stdlib.h>
 #include <time.h>
@@ -84,11 +68,11 @@ on_ready(struct discord *client, const struct discord_ready *event)
 				NULL);
 
 	if(ret != CCORD_OK && ret != CCORD_PENDING)
-		print_logf("Registering commands: %s\n",
+		printf("Registering commands: %s\n",
 			   discord_strerror(ret, client));
 
-	print_logf("Logged in as %s!", event->user->username);
-	print_logf("%ld commands registered", arrlen(commands));
+	printf("Logged in as %s!\n", event->user->username);
+	printf("%ld commands registered\n", arrlen(commands));
 }
 
 void
@@ -120,20 +104,20 @@ main(void)
 
 	CURLcode ret = curl_global_init(CURL_GLOBAL_ALL);
 	if(ret != CURLE_OK){
-		print_logf("Initializing curl: %s\n",
+		printf("Initializing curl: %s\n",
 			   curl_easy_strerror(ret));
 		return(1);
 	}
 
-	print_log("Starting bot");
+	printf("Starting bot\n");
 
 	CCORDcode ret2 = discord_run(client);
 
 	if(ret2 != CCORD_OK)
-		print_logf("Running client: %s\n",
+		printf("Running client: %s\n",
 			   discord_strerror(ret2, client));
 
-	print_log("Exiting...");
+	printf("Exiting...\n");
 
 	return(0);
 }
